@@ -1,196 +1,100 @@
 import logging
-import os
-import tempfile
 from datetime import datetime
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Configuration
-INGREDIENT_PRICES = {
-    "bun": 2.0,
-    "beef": 5.0,
-    "chicken": 4.0,
-    "cheese": 1.0,
-    "tomato": 0.5,
-    "lettuce": 0.5,
-    "sauce": 0.3,
-}
-MEAT_OPTIONS = ("beef", "chicken")
-SAUCE_OPTIONS = ("ketchup", "mustard")
-TAX_RATE = 0.1  # 10%
-TAX_ITERATIONS = 2
-OUTPUT_DIR = tempfile.gettempdir()
+from developpement_logiciel.burger import (
+    assemble_burger,
+    calculate_burger_price,
+    get_bun,
+    get_cheese,
+    get_choice,
+    get_meat,
+    get_order_timestamp,
+    get_sauce,
+    load_last_count,
+    main,
+    save_burger,
+)
 
 
-def get_order_timestamp() -> str:
-    """Return the current timestamp in ISO 8601 format."""
-    return datetime.now().isoformat()
+def test_calculate_burger_price_no_ingredients() -> None:
+    """Empty ingredients list yields zero price."""
+    assert calculate_burger_price([]) == 0.0  # noqa: S101
 
+def test_calculate_burger_price_with_ingredients() -> None:
+    """Correctly applies tax to bun + beef."""
+    assert calculate_burger_price(["bun", "beef"]) == 8.47  # noqa: S101
 
-def get_choice(prompt: str, options: tuple[str, ...], default: str) -> str:
-    """
-    Prompt user to select one of the provided options.
+def test_load_last_count_missing(tmp_path) -> None:
+    """Missing count file returns 0."""
+    assert load_last_count(output_dir=str(tmp_path)) == 0  # noqa: S101
 
-    Args:
-        prompt: Message shown to the user.
-        options: Tuple of valid option strings.
-        default: Value returned if the user input is invalid.
+def test_save_and_load_count(tmp_path) -> None:
+    """Saving a burger updates the count file."""
+    data = {"id": 5, "description": "test"}
+    save_burger(data, output_dir=str(tmp_path))
+    assert load_last_count(output_dir=str(tmp_path)) == 5  # noqa: S101
 
-    Returns:
-        User choice or default if invalid.
+def test_get_choice_valid(monkeypatch, capsys) -> None:
+    """Valid input returns the choice without logging."""
+    monkeypatch.setattr("builtins.input", lambda _: "mustard")
+    choice = get_choice("Choose sauce", ("ketchup", "mustard"), "ketchup")
+    assert choice == "mustard"  # noqa: S101
+    assert capsys.readouterr().out == ""  # noqa: S101
 
-    """
-    opts = "/".join(options)
-    choice = input(f"{prompt} ({opts}): ").strip().lower()
-    if choice not in options:
-        logger.info("Invalid choice '%s', defaulting to '%s'", choice, default)
-        return default
-    return choice
+def test_get_choice_invalid(monkeypatch, caplog) -> None:
+    """Invalid input logs a defaulting message."""
+    caplog.set_level(logging.INFO)
+    monkeypatch.setattr("builtins.input", lambda _: "foo")
+    choice = get_choice("Choose meat", ("beef", "chicken"), "beef")
+    assert choice == "beef"  # noqa: S101
+    assert any("defaulting to 'beef'" in rec.getMessage().lower() for rec in caplog.records)  # noqa: S101
 
+def test_get_bun_default_and_custom(monkeypatch) -> None:
+    """Empty bun defaults to 'regular', custom is respected."""
+    monkeypatch.setattr("builtins.input", lambda _: "")
+    assert get_bun() == "regular"  # noqa: S101
+    monkeypatch.setattr("builtins.input", lambda _: "sesame")
+    assert get_bun() == "sesame"  # noqa: S101
 
-def get_bun() -> str:
-    """
-    Prompt the user for bun type, defaulting to 'regular'.
+def test_get_meat_and_sauce(monkeypatch) -> None:
+    """get_meat and get_sauce return valid selections."""
+    monkeypatch.setattr("builtins.input", lambda _: "chicken")
+    assert get_meat() == "chicken"  # noqa: S101
+    monkeypatch.setattr("builtins.input", lambda _: "mustard")
+    assert get_sauce() == "mustard"  # noqa: S101
 
-    Returns:
-        Selected bun type.
+def test_get_cheese_default_and_custom(monkeypatch) -> None:
+    """Empty cheese defaults to 'cheddar', custom is respected."""
+    monkeypatch.setattr("builtins.input", lambda _: "")
+    assert get_cheese() == "cheddar"  # noqa: S101
+    monkeypatch.setattr("builtins.input", lambda _: "swiss")
+    assert get_cheese() == "swiss"  # noqa: S101
 
-    """
-    bun = input("What kind of bun would you like? ").strip() or "regular"
-    logger.info("Selected bun: %s", bun)
-    return bun
+def test_get_order_timestamp_format() -> None:
+    """Timestamp returned is ISO-formatted."""
+    ts = get_order_timestamp()
+    assert "T" in ts  # noqa: S101
+    datetime.fromisoformat(ts)
 
+def test_assemble_burger_and_output(monkeypatch) -> None:
+    """assemble_burger builds the correct dict and price."""
+    inputs = iter(["sesame", "beef", "ketchup", "gouda"])
+    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+    import developpement_logiciel.burger as burger_module
+    monkeypatch.setattr(burger_module, "get_order_timestamp", lambda: "2025-06-13T12:00:00")
+    result = assemble_burger(10)
+    assert result["id"] == 10  # noqa: S101
+    assert result["timestamp"] == "2025-06-13T12:00:00"  # noqa: S101
+    assert result["description"] == "sesame bun + beef + ketchup + gouda cheese"  # noqa: S101
+    expected = calculate_burger_price(["bun", "beef", "sauce", "cheese"])
+    assert result["price"] == expected  # noqa: S101
 
-def get_meat() -> str:
-    """
-    Prompt the user for meat selection.
-
-    Returns:
-        Selected meat type.
-
-    """
-    meat = get_choice("Choose meat", MEAT_OPTIONS, "beef")
-    logger.info("Selected meat: %s", meat)
-    return meat
-
-
-def get_sauce() -> str:
-    """
-    Prompt the user for sauce selection.
-
-    Returns:
-        Selected sauce type.
-
-    """
-    sauce = get_choice("Choose sauce", SAUCE_OPTIONS, "ketchup")
-    logger.info("Selected sauce: %s", sauce)
-    return sauce
-
-
-def get_cheese() -> str:
-    """
-    Prompt the user for cheese type, defaulting to 'cheddar'.
-
-    Returns:
-        Selected cheese type.
-
-    """
-    cheese = input("What kind of cheese? ").strip() or "cheddar"
-    logger.info("Selected cheese: %s", cheese)
-    return cheese
-
-
-def calculate_burger_price(ingredients: list[str]) -> float:
-    """
-    Calculate the total price of ingredients including compounded tax.
-
-    Args:
-        ingredients: List of ingredient keys.
-
-    Returns:
-        Total price rounded to two decimals.
-
-    """
-    base = sum(INGREDIENT_PRICES.get(item, 0) for item in ingredients)
-    total = base * ((1 + TAX_RATE) ** TAX_ITERATIONS)
-    return round(total, 2)
-
-
-def load_last_count(output_dir: str = OUTPUT_DIR) -> int:
-    """
-    Load the last burger count from file, or return 0 if not found or invalid.
-
-    Args:
-        output_dir: Directory where count file is stored.
-
-    Returns:
-        Integer count of last burger.
-
-    """
-    path = os.path.join(output_dir, "burger_count.txt")
-    try:
-        with open(path) as f:
-            return int(f.read().strip())
-    except (FileNotFoundError, ValueError):
-        return 0
-
-
-def save_burger(burger: dict[str, any], output_dir: str = OUTPUT_DIR) -> None:
-    """
-    Save burger description and ID to files in the output directory.
-
-    Args:
-        burger: Dictionary with 'description' and 'id'.
-        output_dir: Directory to write files.
-
-    """
-    os.makedirs(output_dir, exist_ok=True)
-    desc_file = os.path.join(output_dir, "burger.txt")
-    count_file = os.path.join(output_dir, "burger_count.txt")
-
-    with open(desc_file, "w") as f:
-        f.write(burger["description"])
-    with open(count_file, "w") as f:
-        f.write(str(burger["id"]))
-
-
-def assemble_burger(burger_id: int) -> dict[str, any]:
-    """
-    Assemble a burger by prompting user for each component.
-
-    Args:
-        burger_id: Unique identifier for the burger.
-
-    Returns:
-        Dictionary with burger metadata.
-
-    """
-    bun = get_bun()
-    meat = get_meat()
-    sauce = get_sauce()
-    cheese = get_cheese()
-    timestamp = get_order_timestamp()
-
-    ingredients = ["bun", meat, "sauce", "cheese"]
-    price = calculate_burger_price(ingredients)
-    description = f"{bun} bun + {meat} + {sauce} + {cheese} cheese"
-
-    return {
-        "id": burger_id,
-        "description": description,
-        "price": price,
-        "timestamp": timestamp,
-    }
-
-
-def main() -> None:
-    """Assemble and save a burger."""
-    current_id = load_last_count(output_dir=OUTPUT_DIR) + 1
-    burger_data = assemble_burger(current_id)
-    save_burger(burger_data, output_dir=OUTPUT_DIR)
-
-
-if __name__ == "__main__":
+def test_main_creates_files(tmp_path, monkeypatch) -> None:
+    """main() writes burger.txt and burger_count.txt in OUTPUT_DIR."""
+    import developpement_logiciel.burger as burger_module
+    monkeypatch.setattr(burger_module, "OUTPUT_DIR", str(tmp_path))
+    inputs = iter(["", "beef", "ketchup", ""])
+    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
     main()
+    assert (tmp_path / "burger.txt").exists()  # noqa: S101
+    assert (tmp_path / "burger_count.txt").read_text() == "1"  # noqa: S101
