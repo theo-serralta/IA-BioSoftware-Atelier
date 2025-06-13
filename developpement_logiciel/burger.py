@@ -1,5 +1,11 @@
 import os
+import logging
+import tempfile
 from datetime import datetime
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Configuration
 INGREDIENT_PRICES = {
@@ -15,59 +21,109 @@ MEAT_OPTIONS = ("beef", "chicken")
 SAUCE_OPTIONS = ("ketchup", "mustard")
 TAX_RATE = 0.1  # 10%
 TAX_ITERATIONS = 2
-OUTPUT_DIR = "/tmp"
+OUTPUT_DIR = tempfile.gettempdir()
 
 
 def get_order_timestamp() -> str:
-    """Return the current timestamp in ISO format."""
+    """
+    Return the current timestamp in ISO 8601 format.
+    """
     return datetime.now().isoformat()
 
 
 def get_choice(prompt: str, options: tuple[str, ...], default: str) -> str:
-    """Prompt user to choose from options, defaulting if invalid."""
+    """
+    Prompt user to select one of the provided options.
+
+    Args:
+        prompt: Message shown to the user.
+        options: Tuple of valid option strings.
+        default: Value returned if the user input is invalid.
+
+    Returns:
+        User choice or default if invalid.
+    """
     opts = "/".join(options)
     choice = input(f"{prompt} ({opts}): ").strip().lower()
     if choice not in options:
-        print(f"Invalid choice, defaulting to '{default}'.")
+        logger.info("Invalid choice '%s', defaulting to '%s'", choice, default)
         return default
     return choice
 
 
 def get_bun() -> str:
-    bun = input("What kind of bun would you like? ").strip()
-    bun = bun or "regular"
-    print(f"Selected bun: {bun}")
+    """
+    Prompt the user for bun type, defaulting to 'regular'.
+
+    Returns:
+        Selected bun type.
+    """
+    bun = input("What kind of bun would you like? ").strip() or "regular"
+    logger.info("Selected bun: %s", bun)
     return bun
 
 
 def get_meat() -> str:
+    """
+    Prompt the user for meat selection.
+
+    Returns:
+        Selected meat type.
+    """
     meat = get_choice("Choose meat", MEAT_OPTIONS, "beef")
-    print(f"Selected meat: {meat}")
+    logger.info("Selected meat: %s", meat)
     return meat
 
 
 def get_sauce() -> str:
+    """
+    Prompt the user for sauce selection.
+
+    Returns:
+        Selected sauce type.
+    """
     sauce = get_choice("Choose sauce", SAUCE_OPTIONS, "ketchup")
-    print(f"Selected sauce: {sauce}")
+    logger.info("Selected sauce: %s", sauce)
     return sauce
 
 
 def get_cheese() -> str:
-    cheese = input("What kind of cheese? ").strip()
-    cheese = cheese or "cheddar"
-    print(f"Selected cheese: {cheese}")
+    """
+    Prompt the user for cheese type, defaulting to 'cheddar'.
+
+    Returns:
+        Selected cheese type.
+    """
+    cheese = input("What kind of cheese? ").strip() or "cheddar"
+    logger.info("Selected cheese: %s", cheese)
     return cheese
 
 
 def calculate_burger_price(ingredients: list[str]) -> float:
-    """Sum ingredient prices and apply compounded tax."""
+    """
+    Calculate the total price of ingredients including compounded tax.
+
+    Args:
+        ingredients: List of ingredient keys.
+
+    Returns:
+        Total price rounded to two decimals.
+    """
     base = sum(INGREDIENT_PRICES.get(item, 0) for item in ingredients)
     total = base * ((1 + TAX_RATE) ** TAX_ITERATIONS)
     return round(total, 2)
 
 
 def load_last_count(output_dir: str = OUTPUT_DIR) -> int:
-    """Retrieve last burger count from file, or 0 if not found/invalid."""
+    """
+    Load the last burger count from file, or return 0 if not found/invalid.
+
+    Args:
+        output_dir: Directory where count file is stored.
+
+    Returns:
+        Integer count of last burger.
+    """
     path = os.path.join(output_dir, "burger_count.txt")
     try:
         with open(path) as f:
@@ -77,7 +133,13 @@ def load_last_count(output_dir: str = OUTPUT_DIR) -> int:
 
 
 def save_burger(burger: dict[str, any], output_dir: str = OUTPUT_DIR) -> None:
-    """Save burger description and ID to files."""
+    """
+    Save burger description and ID to files in the output directory.
+
+    Args:
+        burger: Dictionary with 'description' and 'id'.
+        output_dir: Directory to write files.
+    """
     os.makedirs(output_dir, exist_ok=True)
     desc_file = os.path.join(output_dir, "burger.txt")
     count_file = os.path.join(output_dir, "burger_count.txt")
@@ -87,11 +149,17 @@ def save_burger(burger: dict[str, any], output_dir: str = OUTPUT_DIR) -> None:
     with open(count_file, "w") as f:
         f.write(str(burger["id"]))
 
-    print(f"Burger saved to {desc_file}")
-
 
 def assemble_burger(burger_id: int) -> dict[str, any]:
-    """Gather selections, calculate price, and return burger data."""
+    """
+    Assemble a burger by prompting user for each component.
+
+    Args:
+        burger_id: Unique identifier for the burger.
+
+    Returns:
+        Dictionary with burger metadata.
+    """
     bun = get_bun()
     meat = get_meat()
     sauce = get_sauce()
@@ -111,11 +179,11 @@ def assemble_burger(burger_id: int) -> dict[str, any]:
 
 
 def main() -> None:
-    print("Welcome to the optimized burger maker!")
-    # Charger le compteur depuis OUTPUT_DIR
+    """
+    Main entry point: assemble and save a burger.
+    """
     current_id = load_last_count(output_dir=OUTPUT_DIR) + 1
     burger_data = assemble_burger(current_id)
-    # Sauvegarder dans OUTPUT_DIR configurable (utile pour les tests)
     save_burger(burger_data, output_dir=OUTPUT_DIR)
 
 
