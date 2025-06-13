@@ -28,6 +28,7 @@ def get_order_timestamp() -> str:
     """
     Return the current timestamp in ISO 8601 format.
     """
+    
     return datetime.now().isoformat()
 
 
@@ -42,6 +43,7 @@ def get_choice(prompt: str, options: tuple[str, ...], default: str) -> str:
 
     Returns:
         User choice or default if invalid.
+
     """
     opts = "/".join(options)
     choice = input(f"{prompt} ({opts}): ").strip().lower()
@@ -57,6 +59,7 @@ def get_bun() -> str:
 
     Returns:
         Selected bun type.
+
     """
     bun = input("What kind of bun would you like? ").strip() or "regular"
     logger.info("Selected bun: %s", bun)
@@ -69,6 +72,7 @@ def get_meat() -> str:
 
     Returns:
         Selected meat type.
+
     """
     meat = get_choice("Choose meat", MEAT_OPTIONS, "beef")
     logger.info("Selected meat: %s", meat)
@@ -81,6 +85,7 @@ def get_sauce() -> str:
 
     Returns:
         Selected sauce type.
+
     """
     sauce = get_choice("Choose sauce", SAUCE_OPTIONS, "ketchup")
     logger.info("Selected sauce: %s", sauce)
@@ -93,6 +98,7 @@ def get_cheese() -> str:
 
     Returns:
         Selected cheese type.
+
     """
     cheese = input("What kind of cheese? ").strip() or "cheddar"
     logger.info("Selected cheese: %s", cheese)
@@ -108,6 +114,7 @@ def calculate_burger_price(ingredients: list[str]) -> float:
 
     Returns:
         Total price rounded to two decimals.
+
     """
     base = sum(INGREDIENT_PRICES.get(item, 0) for item in ingredients)
     total = base * ((1 + TAX_RATE) ** TAX_ITERATIONS)
@@ -123,6 +130,7 @@ def load_last_count(output_dir: str = OUTPUT_DIR) -> int:
 
     Returns:
         Integer count of last burger.
+
     """
     path = os.path.join(output_dir, "burger_count.txt")
     try:
@@ -139,6 +147,7 @@ def save_burger(burger: dict[str, any], output_dir: str = OUTPUT_DIR) -> None:
     Args:
         burger: Dictionary with 'description' and 'id'.
         output_dir: Directory to write files.
+
     """
     os.makedirs(output_dir, exist_ok=True)
     desc_file = os.path.join(output_dir, "burger.txt")
@@ -159,6 +168,7 @@ def assemble_burger(burger_id: int) -> dict[str, any]:
 
     Returns:
         Dictionary with burger metadata.
+
     """
     bun = get_bun()
     meat = get_meat()
