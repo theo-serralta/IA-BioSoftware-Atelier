@@ -3,11 +3,9 @@ import os
 import tempfile
 from datetime import datetime
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuration
 INGREDIENT_PRICES = {
     "bun": 2.0,
     "beef": 5.0,
@@ -19,7 +17,7 @@ INGREDIENT_PRICES = {
 }
 MEAT_OPTIONS = ("beef", "chicken")
 SAUCE_OPTIONS = ("ketchup", "mustard")
-TAX_RATE = 0.1  # 10%
+TAX_RATE = 0.1
 TAX_ITERATIONS = 2
 OUTPUT_DIR = tempfile.gettempdir()
 

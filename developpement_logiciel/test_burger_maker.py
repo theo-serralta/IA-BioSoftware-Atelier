@@ -1,7 +1,7 @@
-from datetime import datetime
 import logging
 import os
 import tempfile
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -186,9 +186,7 @@ def assemble_burger(burger_id: int) -> dict[str, any]:
 
 
 def main() -> None:
-    """
-    Assemble and save a burger.
-    """
+    """Assemble and save a burger."""
     current_id = load_last_count(output_dir=OUTPUT_DIR) + 1
     burger_data = assemble_burger(current_id)
     save_burger(burger_data, output_dir=OUTPUT_DIR)
