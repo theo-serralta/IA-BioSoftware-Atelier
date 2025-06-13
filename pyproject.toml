@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "myproject"
 version = "0.1.0"
@@ -16,3 +20,7 @@ dependencies = [
 [tool.ruff.lint]
 select = ["S", "R", "RET", "Q", "F", "I", "N", "E", "W", "D", "COM", "LOG", "G", "T20", "PYI", "PT"]
 ignore = ["E501", "N818", "D100", "D104", "PT009", "PT027", "D212", "D203", "S105", "COM812", "D417"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["developpement_logiciel*"]
