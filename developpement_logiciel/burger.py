@@ -112,10 +112,11 @@ def assemble_burger(burger_id: int) -> dict[str, any]:
 
 def main() -> None:
     print("Welcome to the optimized burger maker!")
-    current_id = load_last_count() + 1
-    burger = assemble_burger(current_id)
-    save_burger(burger)
-
+    # Charger le compteur depuis OUTPUT_DIR
+    current_id = load_last_count(output_dir=OUTPUT_DIR) + 1
+    burger_data = assemble_burger(current_id)
+    # Sauvegarder dans OUTPUT_DIR configurable (utile pour les tests)
+    save_burger(burger_data, output_dir=OUTPUT_DIR)
 
 if __name__ == '__main__':
     main()
