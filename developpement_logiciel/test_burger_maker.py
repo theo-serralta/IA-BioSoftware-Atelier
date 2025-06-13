@@ -1,5 +1,3 @@
-import os
-import pytest
 from datetime import datetime
 
 # Import the module under test as a package
